@@ -32,7 +32,22 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		const int attrByteOffset,
 		const Datatype attrType)
 {
+	// Construct index name
+	std::ostringstream idxStr;
+	idxStr << relationName << '.' << attrByteOffset;
+	outIndexName = idxStr.str();
 
+	// Create blobfile
+	BlobFile * bfile = new BlobFile(relationName, true);
+	this->file = bfile;
+
+	// Construct metadata
+	IndexMetaInfo metadata;
+	strcpy(metadata.relationName, relationName.c_str());
+	metadata.attrByteOffset = attrByteOffset;
+	metadata.attrType = attrType;
+	metadata.rootPageNo = 0;
+	this->rootPageNum = metadata.rootPageNo;
 }
 
 
