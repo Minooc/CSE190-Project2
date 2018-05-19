@@ -216,6 +216,7 @@ class Page {
   PageIterator end();
 
  private:
+
   /**
    * Initializes this page as a new page with no header information or data.
    */
