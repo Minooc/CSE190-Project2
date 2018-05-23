@@ -38,6 +38,12 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 	idxStr << relationName << '.' << attrByteOffset;
 	outIndexName = idxStr.str();
 
+	// If index file already exists, remove it first
+	try {
+		File::remove(outIndexName);
+	}
+	catch (FileNotFoundException &e) { }
+
 	// Create/Open blobfile
 	BlobFile *bfile;
 	if(bfile->exists(outIndexName)) {
@@ -49,22 +55,20 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		this->file = bfile;
 	}
 
-	// Construct metadata
-	IndexMetaInfo * metadata = new IndexMetaInfo();
-	strcpy(metadata->relationName, relationName.c_str());
-	metadata->attrByteOffset = attrByteOffset;
-	metadata->attrType = attrType;
-
 	// Set values for BTreeIndex
 	this->bufMgr = bufMgrIn;
 	this->attributeType = attrType;
 	this->attrByteOffset = attrByteOffset;
 
-	// Writing metadata page
+	// Construct metadata page
 	Page * metaPage = new Page();
-	metaPage = (Page*)metadata;
 	this->bufMgr->allocPage(this->file, this->headerPageNum, metaPage);
-	this->headerPageNum = 0;
+	IndexMetaInfo * metadata = new IndexMetaInfo();
+	metadata = (IndexMetaInfo*)metaPage;
+	metadata->attrByteOffset = attrByteOffset;
+	metadata->attrType = attrType;
+	strcpy(metadata->relationName, relationName.c_str());
+	this->bufMgr->unPinPage(this->file, this->headerPageNum, 1);
 
 	// Insert all entries in relation into index
 	FileScan fscan(relationName, this->bufMgr);
@@ -97,11 +101,19 @@ BTreeIndex::~BTreeIndex()
 
 const void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
 {
+//	printf("inserting key %d (rid %d)\n", *(int*)key, rid);
+	Page * metadataPage = new Page();
+	this->bufMgr->readPage(this->file, this->headerPageNum, metadataPage);
+//	printf("read page with num %d\n", (int)headerPageNum);
 
-	Page * rootpage;
-	this->bufMgr->readPage(this->file, rootPageNum, rootpage);
+	IndexMetaInfo * metadata = new IndexMetaInfo();
+	metadata = (IndexMetaInfo*)metadataPage;
+	std::cout << metadata->attrByteOffset << ' ' << metadata->attrType << ' ' << metadata->relationName << std::endl;
+
+	this->bufMgr->unPinPage(this->file, headerPageNum, 0);
+
+		
 	
-
 /*
 	std::cout << "inserting leaf" << std::endl;
 	LeafNodeInt leaf;

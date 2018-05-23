@@ -147,6 +147,7 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page)
 
     // insert in the hash table
     hashTable->insert(file, pageNo, frameNo);
+
   }
 }
 
@@ -216,7 +217,6 @@ void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page)
 
   // alloc a new frame
   allocBuf(frameNo);
-
   // allocate a new page in the file
 	//std::cerr << "buffer data size:" << bufPool[frameNo].data_.length() << "\n";
   bufPool[frameNo] = file->allocatePage(pageNo);
