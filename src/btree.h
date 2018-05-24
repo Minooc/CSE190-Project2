@@ -244,6 +244,8 @@ struct LeafNodeInt{
 	 * This linking of leaves allows to easily move from one leaf to the next leaf during index scan.
    */
 	PageId rightSibPageNo;
+
+	int occupancy;
 };
 
 /**
@@ -438,6 +440,9 @@ class BTreeIndex {
 	**/
 	const void insertEntry(const void* key, const RecordId rid);
 
+	/* TO DO: ADD COMMENTS */
+	const void insertToNode(const void* key, const RecordId rid, bool isLeaf);
+	const void splitNode();
 
   /**
 	 * Begin a filtered scan of the index.  For instance, if the method is called 
