@@ -244,8 +244,6 @@ struct LeafNodeInt{
 	 * This linking of leaves allows to easily move from one leaf to the next leaf during index scan.
    */
 	PageId rightSibPageNo;
-
-	int occupancy;
 };
 
 /**
@@ -327,6 +325,11 @@ class BTreeIndex {
    * Offset of attribute, over which index is built, inside records. 
    */
 	int 		attrByteOffset;
+
+  /**
+   * Number of nodes in the tree.
+   */
+	int			numOfNodes;
 
   /**
    * Number of keys in leaf node, depending upon the type of key.
@@ -441,8 +444,11 @@ class BTreeIndex {
 	const void insertEntry(const void* key, const RecordId rid);
 
 	/* TO DO: ADD COMMENTS */
-	const void insertToNode(const void* key, const RecordId rid, bool isLeaf);
-	const void splitNode();
+	void testPrint();
+	void fullNodeHandler(LeafNodeInt* currNode, NonLeafNodeInt* parentNode, IndexMetaInfo* metadata, const void *key, RecordId rid);
+	const void insertToNode(LeafNodeInt * node, const void* key, const RecordId rid);
+	LeafNodeInt* splitNode(LeafNodeInt *& leftNode, int& middleKey, PageId &pid);
+	const LeafNodeInt* traverse();
 
   /**
 	 * Begin a filtered scan of the index.  For instance, if the method is called 
