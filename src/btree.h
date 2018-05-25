@@ -445,9 +445,10 @@ class BTreeIndex {
 
 	/* TO DO: ADD COMMENTS */
 	void testPrint();
-	void fullNodeHandler(LeafNodeInt* currNode, NonLeafNodeInt* parentNode, IndexMetaInfo* metadata, const void *key, RecordId rid);
+	void fullNodeHandler(void* currNode, NonLeafNodeInt* parentNode, bool isLeaf);
 	const void insertToNode(LeafNodeInt * node, const void* key, const RecordId rid);
-	LeafNodeInt* splitNode(LeafNodeInt *& leftNode, int& middleKey, PageId &pid);
+	void splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &pid);
+	void splitNonLeafNode(NonLeafNodeInt *& leftNode);
 	const LeafNodeInt* traverse();
 
   /**
