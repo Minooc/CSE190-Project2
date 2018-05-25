@@ -155,6 +155,9 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 
 		/* This block is the general case where there is more than one node */
 		else {	// more than one node
+			Page * parentPage;
+			bufMgr->readPage(file, metadata->rootPageNo, parentPage);  
+			LeafNodeInt * leafNode = traverse(keyValue, (NonLeafNodeInt *) parentPage, metadata->rootPageNo);
 
 /*
 			Page * rootPage = new Page();
@@ -325,15 +328,43 @@ void BTreeIndex::splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &
 // -----------------------------------------------------------------------------
 // BTreeIndex::splitNonLeafNode - helper function of insertEntry
 // -----------------------------------------------------------------------------
-void BTreeIndex::splitNonLeafNode(NonLeafNodeInt *& leftNode) { // TO DO: Add implementation 
+void BTreeIndex::splitNonLeafNode(int key, NonLeafNodeInt *& leftNode) { // TO DO: Add implementation 
 
 }
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::traverse - helper function of insertEntry
 // -----------------------------------------------------------------------------
-const LeafNodeInt* BTreeIndex::traverse() { // TO DO: Add parameter & implementation
+LeafNodeInt * BTreeIndex::traverse(int key, NonLeafNodeInt * currNode, PageId currNodeId) { // TO DO: Add parameter & implementation
 
+
+	if(currNode->level == 1){
+		int i = 0;
+		for(i = 0; i < INTARRAYNONLEAFSIZE; i++){
+			if(currNode->keyArray[i] != 0 && currNode->keyArray[i] > key){
+				break;
+			}
+		}
+
+		bufMgr->unPinPage(file, currNodeId, false);
+		Page * leafPage;
+		bufMgr->readPage(file, currNode->pageNoArray[i],leafPage);
+		return (LeafNodeInt *) leafPage; 
+	}
+	else{	
+		// Start scanning the node index
+		int i = 0;
+		for(i = 0; i < INTARRAYNONLEAFSIZE; i++){
+			if(currNode->keyArray[i] != 0 && currNode->keyArray[i] > key){
+				break;
+			}
+		}
+		//PageId childPageNo = parentNode->pageNoArray[i];
+		bufMgr->unPinPage(file, currNodeId, false);
+		Page * parent;
+		bufMgr->readPage(file, currNode->pageNoArray[i], parent);
+		return traverse(key, (NonLeafNodeInt *) parent, currNode->pageNoArray[i]);
+	}
 }
 
 // -----------------------------------------------------------------------------

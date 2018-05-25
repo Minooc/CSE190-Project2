@@ -449,7 +449,7 @@ class BTreeIndex {
 	const void insertToNode(LeafNodeInt * node, const void* key, const RecordId rid);
 	void splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &pid);
 	void splitNonLeafNode(NonLeafNodeInt *& leftNode);
-	const LeafNodeInt* traverse();
+	LeafNodeInt * traverse(int key, NonLeafNodeInt *, PageId);
 
   /**
 	 * Begin a filtered scan of the index.  For instance, if the method is called 
