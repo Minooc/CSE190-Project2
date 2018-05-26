@@ -404,7 +404,7 @@ class BTreeIndex {
    */
 	Operator	highOp;
 
-	
+	int startScanIndex;
  public:
 
   /**
