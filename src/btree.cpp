@@ -143,30 +143,30 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 			LeafNodeInt * rootNode = new LeafNodeInt();
 			rootNode = (LeafNodeInt*)rootPage;
 
-//	std::cout << "inserting " << keyValue << std::endl;
 
 			// After the insertion, call fullNodeHandler if the node is full.
 			insertToNode(rootNode,key,rid);
 			if (rootNode->keyArray[INTARRAYLEAFSIZE-1] != -1) { 
-				fullNodeHandler(rootNode, NULL, 1);
+				fullNodeHandler(rootNode, NULL, this->rootPageNum,1);
 				this->numOfNodes++;
 			}
 		}
 
 		/* This block is the general case where there is more than one node */
 		else {	// more than one node
-			Page * parentPage;
-			bufMgr->readPage(file, metadata->rootPageNo, parentPage);  
-			LeafNodeInt * leafNode = traverse(keyValue, (NonLeafNodeInt *) parentPage, metadata->rootPageNo);
 
-/*
-			Page * rootPage = new Page();
-			this->bufMgr->readPage(this->file, this->rootPageNum, rootPage);
+	//std::cout << "inserting " << keyValue << std::endl;
+			Page * rootPage;
+			bufMgr->readPage(file, metadata->rootPageNo, rootPage);  
 			NonLeafNodeInt * rootNode = new NonLeafNodeInt();
 			rootNode = (NonLeafNodeInt*)rootPage;
-*/
 
-//			const LeafNodeInt* leafNode = traverse();
+			traverse(rootNode, key, rid);
+			if (rootNode->keyArray[INTARRAYNONLEAFSIZE-1] != -1) {
+				std::cout << "Full when inserting " << keyValue << std::endl;
+				fullNodeHandler(rootNode, NULL, this->rootPageNum, 1);
+				this->numOfNodes++;
+			}
 /*
  *			traverse from root: traverse(currNode)
  *			currNode is initially root.
@@ -188,6 +188,7 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	
 	metadata->rootPageNo = this->rootPageNum;
 	this->bufMgr->unPinPage(this->file, this->headerPageNum, 0);
+	if (keyValue == 4999)	testPrint();
 }
 
 
@@ -214,19 +215,17 @@ const void BTreeIndex::insertToNode(LeafNodeInt * node, const void *key, const R
 // -----------------------------------------------------------------------------
 // BTreeIndex::fullNodeHandler - helper function of insertEntry
 // -----------------------------------------------------------------------------
-void BTreeIndex::fullNodeHandler(void* currNode, NonLeafNodeInt* parentNode, bool isLeaf) {
-
-
-	int currRootPageNo = this->rootPageNum;
+void BTreeIndex::fullNodeHandler(void* currNode, NonLeafNodeInt *parentNode, PageId currPageNo, bool isLeaf) {
 
 	// Check if there already exists the parent to push up
 	if (parentNode == NULL) { 
 		Page * newParentPage = new Page();
 		this->bufMgr->allocPage(this->file, this->rootPageNum, newParentPage);
 		parentNode = (NonLeafNodeInt *)newParentPage;
-		for (int i=0; i < INTARRAYLEAFSIZE; i++) {
+		for (int i=0; i < INTARRAYNONLEAFSIZE; i++) {
 			parentNode->keyArray[i] = -1;
 		}
+		parentNode->level = 1;
 	}
 
 	
@@ -236,27 +235,28 @@ void BTreeIndex::fullNodeHandler(void* currNode, NonLeafNodeInt* parentNode, boo
 	if (isLeaf) {
 		LeafNodeInt* currNodeLeaf = (LeafNodeInt*)currNode;
 		splitLeafNode(currNodeLeaf, middleKey, rightPageNum); // splitNode called
+//		parentNode->level ++;
 	}
 	else{
-		/* Haven't implemented splitNonLeafNode yet */
-//		NonLeafNodeInt* currNodeNonLeaf = (NonLeafNodeInt*)currNode;
-//		splitNonLeafNode(currNodeNonLeaf, middleKey, rightPageNum);
+		NonLeafNodeInt* currNodeNonLeaf = (NonLeafNodeInt*)currNode;
+		splitNonLeafNode(currNodeNonLeaf, middleKey, rightPageNum);
+//		parentNode->level ++;
 	}
+	std::cout << "middle key is " << middleKey << std::endl;
 
 	// Set attribute for new root
 	// Push every values to the right when it's greater than key
-	int nonLeafIndex = INTARRAYLEAFSIZE;
+	int nonLeafIndex = INTARRAYNONLEAFSIZE;
 	while (nonLeafIndex > 0 && (middleKey < parentNode->keyArray[nonLeafIndex-1] || parentNode->keyArray[nonLeafIndex-1] == -1)) {
 		if (parentNode->keyArray[nonLeafIndex-1] != -1) parentNode->keyArray[nonLeafIndex] = parentNode->keyArray[nonLeafIndex-1];
 		nonLeafIndex--;
 	}
 	parentNode->keyArray[nonLeafIndex] = middleKey;
-	parentNode->pageNoArray[nonLeafIndex] = currRootPageNo;
+	parentNode->pageNoArray[nonLeafIndex] = currPageNo;
 	parentNode->pageNoArray[nonLeafIndex+1] = rightPageNum;
 
-
+	std::cout << "splited into " << nonLeafIndex << " and " << nonLeafIndex+1 << std::endl;
 	testPrint();
-
 
 }
 
@@ -280,17 +280,39 @@ void BTreeIndex::testPrint() {
 				this->bufMgr->readPage(this->file, testRootNode->pageNoArray[1], testRight);
 				LeafNodeInt * testRightNode = new LeafNodeInt();
 				testRightNode = (LeafNodeInt*)testRight;
-				std::cout << "MIDDLE KEY IS " << testRootNode->keyArray[0] << std::endl;
 
-				std::cout << "PRINTING LEFT" << std::endl;
+				std::cout << "MIDDLE KEY IS " << testRootNode->keyArray[0] << std::endl;
+				std::cout << "Level of root is " << testRootNode->level << std::endl;
+				std::cout << "Number of nodes is " << numOfNodes << std::endl;
+
+				std::cout << "PRINTING ROOT" << std::endl;
+				for (int i=0; i < INTARRAYNONLEAFSIZE; i++) {
+					if (testRootNode->keyArray[i] != -1) std::cout << testRootNode->keyArray[i] << ' ';
+				}
+				std::cout << std::endl;
+				std::cout << "PRINTING LEFTEST (index 0)" << std::endl;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
 					if (testLeftNode->keyArray[i] != -1) std::cout << testLeftNode->keyArray[i] << ' ';
 				}
 				std::cout << std::endl;
-				std::cout << "PRINTING RIGHT" << std::endl;
+				std::cout << "PRINTING Page with index 1" << std::endl;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
 					if (testRightNode->keyArray[i] != -1) std::cout << testRightNode->keyArray[i] << ' ';
 				}
+		for (int j=2; j < 100; j++) {
+			if (testRootNode->pageNoArray[j] == 0) break;
+Page * test3Right = new Page();
+this->bufMgr->readPage(this->file, testRootNode->pageNoArray[j], test3Right);
+LeafNodeInt * test3RightNode = new LeafNodeInt();
+test3RightNode = (LeafNodeInt*)test3Right;
+
+				std::cout << std::endl;
+				std::cout << "PRINTING Page with index " << j << std::endl;
+				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
+					if (test3RightNode->keyArray[i] != -1) std::cout << test3RightNode->keyArray[i] << ' ';
+				}
+		}
+
 }
 
 // -----------------------------------------------------------------------------
@@ -328,23 +350,84 @@ void BTreeIndex::splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &
 // -----------------------------------------------------------------------------
 // BTreeIndex::splitNonLeafNode - helper function of insertEntry
 // -----------------------------------------------------------------------------
-void BTreeIndex::splitNonLeafNode(int key, NonLeafNodeInt *& leftNode) { // TO DO: Add implementation 
+void BTreeIndex::splitNonLeafNode(NonLeafNodeInt *& leftNode, int& middleKey, PageId &pid) { // TO DO: Add implementation 
 
+	Page * rightPage = new Page();
+	this->bufMgr->allocPage(this->file, pid, rightPage);
+	NonLeafNodeInt * rightNode = new NonLeafNodeInt();
+	rightNode = (NonLeafNodeInt*)rightPage;
+
+	// get the middle value
+	int middlePoint = INTARRAYLEAFSIZE/2;
+	middleKey = leftNode->keyArray[middlePoint];
+
+	// move right side of original node to rightNode
+	for (int i=middlePoint, j=0; i < INTARRAYNONLEAFSIZE; i++, j++) {
+		rightNode->keyArray[j] = leftNode->keyArray[i];
+		rightNode->pageNoArray[j] = leftNode->pageNoArray[i];
+	}
+	for (int i=middlePoint; i < INTARRAYNONLEAFSIZE; i++) {
+		rightNode->keyArray[i] = -1;
+		leftNode->keyArray[i] = -1;
+	}
+
+	// Increment total number of nodes 
+	this->numOfNodes += 1;
 }
 
 // -----------------------------------------------------------------------------
 // BTreeIndex::traverse - helper function of insertEntry
 // -----------------------------------------------------------------------------
-LeafNodeInt * BTreeIndex::traverse(int key, NonLeafNodeInt * currNode, PageId currNodeId) { // TO DO: Add parameter & implementation
+void BTreeIndex::traverse(NonLeafNodeInt* currNode, const void* key, const RecordId rid) { 
 
+	int keyValue = *(int*)key;
 
-	if(currNode->level == 1){
-		int i = 0;
-		for(i = 0; i < INTARRAYNONLEAFSIZE; i++){
-			if(currNode->keyArray[i] != 0 && currNode->keyArray[i] > key){
-				break;
-			}
+	int i = 0;
+	for(i = 0; i < INTARRAYNONLEAFSIZE; i++){
+		if(currNode->pageNoArray[i+1] == 0 || currNode->keyArray[i] > keyValue){
+			break;
 		}
+	}
+
+	Page * childPage = new Page();
+//	std::cout << "Seeking " << i << "th index with pag no" << currNode->pageNoArray[i] << std::endl;
+	this->bufMgr->readPage(this->file, currNode->pageNoArray[i], childPage);
+
+	void * childNode;
+	if (currNode->level != 1) {		// child is non-leaf
+		childNode = (NonLeafNodeInt*)childPage;
+
+		traverse((NonLeafNodeInt*)childNode, key, rid);
+
+		if (currNode->keyArray[INTARRAYNONLEAFSIZE] != -1) { 
+			fullNodeHandler(childNode, currNode, currNode->pageNoArray[i], 1);
+			this->numOfNodes++;
+		}
+	}
+	else {		// child is leaf
+		childNode = (LeafNodeInt*)childPage;
+		insertToNode((LeafNodeInt*)childNode, key, rid);
+		if (((LeafNodeInt*)childNode)->keyArray[INTARRAYLEAFSIZE-1] != -1) { 
+
+/*			for (int i=0; i< INTARRAYLEAFSIZE; i++) {
+				std::cout << "At index " << i << ": " << ((LeafNodeInt*)childNode)->keyArray[i] << std::endl;
+			}
+*/
+//			testPrint();
+			std::cout << "Full when inserting " << keyValue << std::endl;
+			fullNodeHandler(childNode, currNode, currNode->pageNoArray[i],1);
+			this->numOfNodes++;
+//			testPrint();
+
+		}
+	}
+
+
+
+
+
+/*
+	if(currNode->level == 1){
 
 		bufMgr->unPinPage(file, currNodeId, false);
 		Page * leafPage;
@@ -364,7 +447,7 @@ LeafNodeInt * BTreeIndex::traverse(int key, NonLeafNodeInt * currNode, PageId cu
 		Page * parent;
 		bufMgr->readPage(file, currNode->pageNoArray[i], parent);
 		return traverse(key, (NonLeafNodeInt *) parent, currNode->pageNoArray[i]);
-	}
+*/
 }
 
 // -----------------------------------------------------------------------------
@@ -396,5 +479,4 @@ const void BTreeIndex::endScan()
 {
 
 }
-
 }

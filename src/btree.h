@@ -445,11 +445,11 @@ class BTreeIndex {
 
 	/* TO DO: ADD COMMENTS */
 	void testPrint();
-	void fullNodeHandler(void* currNode, NonLeafNodeInt* parentNode, bool isLeaf);
+	void fullNodeHandler(void* currNode, NonLeafNodeInt* parentNode, PageId currPageNo, bool isLeaf);
 	const void insertToNode(LeafNodeInt * node, const void* key, const RecordId rid);
 	void splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &pid);
-	void splitNonLeafNode(NonLeafNodeInt *& leftNode);
-	LeafNodeInt * traverse(int key, NonLeafNodeInt *, PageId);
+	void splitNonLeafNode(NonLeafNodeInt *& leftNode, int& middleKey, PageId &pid); 
+	void traverse(NonLeafNodeInt* currNode, const void* key, const RecordId rid); 
 
   /**
 	 * Begin a filtered scan of the index.  For instance, if the method is called 
