@@ -16,6 +16,7 @@
 #include "exceptions/file_not_found_exception.h"
 #include "exceptions/end_of_file_exception.h"
 
+#include <queue>
 
 //#define DEBUG
 
@@ -209,7 +210,7 @@ const void BTreeIndex::insertToNode(LeafNodeInt * node, const void *key, const R
 
 //	printf("inserting %d into position %d\n", keyValue, i);
 	node->keyArray[i] = keyValue;
-
+	node->ridArray[i] = rid;
 
 }
 
@@ -281,7 +282,7 @@ void BTreeIndex::testPrint() {
 				this->bufMgr->readPage(this->file, testRootNode->pageNoArray[1], testRight);
 				LeafNodeInt * testRightNode = new LeafNodeInt();
 				testRightNode = (LeafNodeInt*)testRight;
-
+/*
 				std::cout << "MIDDLE KEY IS " << testRootNode->keyArray[0] << std::endl;
 				std::cout << "Level of root is " << testRootNode->level << std::endl;
 				std::cout << "Number of nodes is " << numOfNodes << std::endl;
@@ -291,6 +292,7 @@ void BTreeIndex::testPrint() {
 					if (testRootNode->keyArray[i] != -1) std::cout << testRootNode->keyArray[i] << ' ';
 				}
 				std::cout << std::endl;
+			/*
 				std::cout << "PRINTING LEFTEST (index 0)" << std::endl;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
 					if (testLeftNode->keyArray[i] != -1) std::cout << testLeftNode->keyArray[i] << ' ';
@@ -312,7 +314,7 @@ test3RightNode = (LeafNodeInt*)test3Right;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
 					if (test3RightNode->keyArray[i] != -1) std::cout << test3RightNode->keyArray[i] << ' ';
 				}
-		}
+		}*/
 
 }
 
@@ -461,6 +463,8 @@ const void BTreeIndex::startScan(const void* lowValParm,
 				   const Operator highOpParm)
 {
 
+	//std::cout << "In startScan\n";
+
 	// Operator: LT, LTE, GTE, GT
 	if(lowOp == LT || lowOp == LTE || highOp == GT || highOp == GTE){
 		throw BadOpcodesException();
@@ -473,6 +477,9 @@ const void BTreeIndex::startScan(const void* lowValParm,
 
 	lowValInt = *((int *) lowValParm);
 	highValInt = *((int*) highValParm);
+
+	lowOp = lowOpParm;
+	highOp = highOpParm;
 	
 	if(lowValInt > highValInt) {
 		throw BadScanrangeException();
@@ -480,7 +487,10 @@ const void BTreeIndex::startScan(const void* lowValParm,
 
 	scanExecuting = true;
 
+	std::cout << "lowValParm: " << lowValInt << ", highValParm: " << highValInt << "\n";
+
 	if(numOfNodes == 1){
+		std::cout << "numOfNodes = 1\n";
 		currentPageNum = metadata->rootPageNo;
 		nextEntry = 0;
 		return;
@@ -488,17 +498,20 @@ const void BTreeIndex::startScan(const void* lowValParm,
 
 
 	else {
+		std::cout << "num of nodes = " << numOfNodes << "\n";
 		// Get the root node.
 		bufMgr->readPage(file, metadata->rootPageNo, currentPageData); 
 		NonLeafNodeInt * currNode  = (NonLeafNodeInt *) currentPageData;
 		currentPageNum = metadata->rootPageNo;	
+		std::cout <<"curNode->level: " <<  currNode->level << "\n";		
 	
 		int index = 0;
 		while(currNode->level != 1){
-		
+
+			std::cout <<"curNode->level: " <<  currNode->level << "\n";		
 			for(index = 0; index < INTARRAYNONLEAFSIZE; index++){ 	
 				if(lowValInt <= currNode->keyArray[index] && currNode->keyArray[index] != -1){
-					index++;
+					//index++;
 					break;
 				}
 			}
@@ -511,19 +524,30 @@ const void BTreeIndex::startScan(const void* lowValParm,
 
 		// At the 1st level node 
 		for(index = 0; index < INTARRAYNONLEAFSIZE; index++){ 	
+			std::cout << currNode->keyArray[index] << ", ";
 			if(lowValInt <= currNode->keyArray[index] && currNode->keyArray[index] != -1){
-				index++;
+				//index++;
 				break;
 			}
 		}
-	
+
+		std::cout << "\n";
+
+		std::cout << "Index: " << index << "\n";	
 		bufMgr->readPage(file, currNode->pageNoArray[index], currentPageData);
 		bufMgr->unPinPage(file, currentPageNum, false);
 		//currNode = (NonLeafNodeInt *) currPage;
 		currentPageNum = currNode->pageNoArray[index];
-		nextEntry = 0;	
-	}
+		nextEntry = 0;
 
+		
+		std::cout << "Printing leaf nodes\n";
+		LeafNodeInt * currNode2 = (LeafNodeInt *) currentPageData;
+		for(index = 0; index < INTARRAYLEAFSIZE; index++){
+			if(currNode2->keyArray[index] != -1)
+				std::cout << currNode2->keyArray[index] << ", ";
+		}	
+	}
 
 }
 
@@ -533,6 +557,8 @@ const void BTreeIndex::startScan(const void* lowValParm,
 
 const void BTreeIndex::scanNext(RecordId& outRid) 
 {
+			
+	//std::cout << "\nIn scanNext..\n";
 	if(!scanExecuting){
 		throw ScanNotInitializedException();
 	}
@@ -540,9 +566,14 @@ const void BTreeIndex::scanNext(RecordId& outRid)
 	bufMgr->readPage(file, currentPageNum, currentPageData); 
 	LeafNodeInt * currNode = (LeafNodeInt *) currentPageData;
 
-	//startScanIndex = -1;
+	/*
+	int index;	
+	for(index = 0; index < INTARRAYLEAFSIZE; index++){
+		if(currNode->keyArray[index] != -1)
+			std::cout << currNode->keyArray[index] << ", ";
+	}*/
 
-	if(startScanIndex != -1){
+	if(startScanIndex == -1){
 		int i = 0;
 		for(i = nextEntry; i < INTARRAYLEAFSIZE; i++){
 
@@ -562,23 +593,29 @@ const void BTreeIndex::scanNext(RecordId& outRid)
 				}
 			} 
 		}
+		//std::cout << "Broke out of the loop at i= " << i << "\n";
 		nextEntry = startScanIndex;
 	}
 
+	//std::cout << "nextEntry: " << nextEntry << "\n";
 
 	bool notFound = true;
 	while(notFound){
-		
+	
+			
 		if(currNode->ridArray[nextEntry].page_number == 0){
+			//std::cout << "Scan completed page_number = 0\n";
+			//std::cout << "at index: " << nextEntry << "\n";
 			throw IndexScanCompletedException();	
 		}
 
-		else if(nextEntry > leafOccupancy){
+		if(nextEntry > leafOccupancy){
 			nextEntry = 0;
 			PageId siblingNode = currNode->rightSibPageNo;
 			bufMgr->unPinPage(file, currentPageNum, false);	
 		
 			if(siblingNode == 0){
+				//std::cout << "Scan completed siblingNode = 0\n";
 				throw IndexScanCompletedException();
 			}
 
@@ -587,10 +624,14 @@ const void BTreeIndex::scanNext(RecordId& outRid)
 		}
 
 		else if (currNode->keyArray[nextEntry] > highValInt){
+			//std::cout << "Scan completed keyArray[nextEntry] > highValInt\n";
+			//std::cout << "at index: " << nextEntry << "\n";
 			throw IndexScanCompletedException();
 		}
 
 		else if(highValInt >= currNode->keyArray[nextEntry]){
+			//std::cout << "highValInt: " << highValInt << ", keyArray: " << currNode->keyArray[nextEntry];
+			//std::cout << "\n";
 			if((highOp == LTE) && (highValInt == currNode->keyArray[nextEntry])){
 				//throw IndexScanCompletedException();
 				outRid = currNode->ridArray[nextEntry];
@@ -598,15 +639,20 @@ const void BTreeIndex::scanNext(RecordId& outRid)
 				nextEntry++;
 			}
 			else if((highOp == LT) && (highValInt == currNode->keyArray[nextEntry])){
+				//std::cout << "Scan completed highValInt = keyArray[nextEntry]\n";
+				//std::cout << "at index: " << nextEntry << "\n";
 				throw IndexScanCompletedException();
 			}
 			else{ 
 				outRid = currNode->ridArray[nextEntry];
+				std::cout << "Found: " << currNode->keyArray[nextEntry] << "\n";
+				//std::cout << "page_number: " << outRid.page_number; 
 				notFound = false;
 				nextEntry++;
 			}	
 		}
 	}
+	//std::cout << "\nOut of scanNext()\n";
 
 }
 
@@ -621,5 +667,76 @@ const void BTreeIndex::endScan()
 	}
 	scanExecuting = false;
 	startScanIndex = -1;
+}
+
+
+void BTreeIndex::printTree(){
+
+	std::cout << "PRINTING TREE..\n";	
+	std::queue<PageId> q;
+
+	Page* metaPage; 
+	bufMgr->readPage(file, headerPageNum, metaPage); 
+	IndexMetaInfo * metadata = (IndexMetaInfo *) metaPage;
+
+
+	PageId currPageNum;
+	LeafNodeInt * currLeafNode;
+	Page* currPageData;
+	if(numOfNodes == 1){
+		bufMgr->readPage(file, metadata->rootPageNo, currPageData); 
+		currLeafNode  = (LeafNodeInt *) currPageData;
+		int i = 0;
+		for(i = 0; i < INTARRAYNONLEAFSIZE; i++){
+		 	if(currLeafNode->keyArray[i] != -1){
+				std::cout << currLeafNode->keyArray[i] << ", ";
+			}else{
+				break;
+			}
+		}
+		std::cout << "\n";
+		return;
+	}
+
+
+	bufMgr->readPage(file, metadata->rootPageNo, currPageData); 
+	NonLeafNodeInt * currNode  = (NonLeafNodeInt *) currPageData;
+		
+	//Only works for one level tree as for now	
+	while(currNode->level >=1){
+
+		int i = 0;
+		for(i = 0; i < INTARRAYNONLEAFSIZE; i++){
+		 	if(currNode->keyArray[i] != -1){
+				std::cout << currNode->keyArray[i] << ", ";
+				q.push(currNode->pageNoArray[i]);
+			}else{
+				break;
+			}
+		}
+		std::cout << "\n";
+
+		std::cout << "Leaf Nodes: \n";
+
+		while(!q.empty()){
+			currPageNum = q.front();
+			q.pop();
+			bufMgr->readPage(file, currPageNum, currPageData);
+			currLeafNode = (LeafNodeInt *) currPageData;
+		
+			for(i = 0; i < INTARRAYLEAFSIZE; i++){
+				if(currLeafNode->keyArray[i] != -1){
+					std::cout << currLeafNode->keyArray[i] << ", ";		
+				}
+				else{
+					break;
+				}
+			}	
+
+			std::cout << "\n";
+		}
+		
+	}
+
 }
 }

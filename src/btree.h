@@ -450,7 +450,7 @@ class BTreeIndex {
 	void splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &pid);
 	void splitNonLeafNode(NonLeafNodeInt *& leftNode, int& middleKey, PageId &pid); 
 	void traverse(NonLeafNodeInt* currNode, const void* key, const RecordId rid); 
-
+	void printTree();
   /**
 	 * Begin a filtered scan of the index.  For instance, if the method is called 
 	 * using ("a",GT,"d",LTE) then we should seek all entries with a value 
