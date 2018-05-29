@@ -169,7 +169,10 @@ int main(int argc, char **argv)
 	std::cout << "@@@@@ TEST 2 PASSED!!! @@@@\n";
 	test3();
 	std::cout << "@@@@@ TEST 3 PASSED!!! @@@@\n";
-	//errorTests();
+	errorTests();
+	std::cout << "@@@@@ ERRORTEST PASSED!!! @@@@\n";
+
+	reopenIndex();
 
   return 1;
 }
@@ -428,6 +431,9 @@ void intTests()
 	checkPassFail(intScan(&index,0,GT,1,LT), 0)
 	checkPassFail(intScan(&index,300,GT,400,LT), 99)
 	checkPassFail(intScan(&index,3000,GTE,4000,LT), 1000)
+
+	// additional test
+	checkPassFail(intScan(&index,-1000,GTE,6000,LT), 5000)
 }
 
 int intScan(BTreeIndex * index, int lowVal, Operator lowOp, int highVal, Operator highOp)

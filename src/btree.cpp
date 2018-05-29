@@ -62,6 +62,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 	this->attrByteOffset = attrByteOffset;
 	this->numOfNodes = 0;
 	this->startScanIndex = -1;
+	this->scanExecuting = false;
 
 	// Construct metadata page
 	Page * metaPage = new Page();
@@ -74,6 +75,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 	strcpy(metadata->relationName, relationName.c_str());
 	this->bufMgr->unPinPage(this->file, this->headerPageNum, 1);
 
+	std::cout << "CONST: scanexecuting is " << scanExecuting << std::endl;
 	// Insert all entries in relation into index
 	FileScan fscan(relationName, this->bufMgr);
 	try {
@@ -506,7 +508,7 @@ const void BTreeIndex::startScan(const void* lowValParm,
 	//std::cout << "In startScan\n";
 
 	// Operator: LT, LTE, GTE, GT
-	if(lowOp == LT || lowOp == LTE || highOp == GT || highOp == GTE){
+	if(lowOpParm == LT || lowOpParm == LTE || highOpParm == GT || highOpParm == GTE){
 		throw BadOpcodesException();
 	} 
 	
