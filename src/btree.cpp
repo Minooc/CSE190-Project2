@@ -97,6 +97,8 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 
 BTreeIndex::~BTreeIndex()
 {
+	std::cout << "destructor called" << std::endl;
+	this->file->~File();
 }
 
 // -----------------------------------------------------------------------------
@@ -190,7 +192,7 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	
 	metadata->rootPageNo = this->rootPageNum;
 	this->bufMgr->unPinPage(this->file, this->headerPageNum, 0);
-//	if (keyValue == 4999)	testPrint();
+//	if (keyValue == 0)	testPrint();
 }
 
 
@@ -204,14 +206,16 @@ const void BTreeIndex::insertToNode(LeafNodeInt * node, const void *key, const R
 
 	// Push every values to the right when it's greater than key
 	while (i > 0 && (keyValue < node->keyArray[i-1] || node->keyArray[i-1] == -1)) {
-		if (node->keyArray[i-1] != -1) node->keyArray[i] = node->keyArray[i-1];
+		if (node->keyArray[i-1] != -1) {
+			node->keyArray[i] = node->keyArray[i-1];
+			node->ridArray[i] = node->ridArray[i-1];
+		}
 		i--;
 	}
 
-//	printf("inserting %d into position %d\n", keyValue, i);
 	node->keyArray[i] = keyValue;
 	node->ridArray[i] = rid;
-
+//	std::cout << rid.page_number;
 }
 
 // -----------------------------------------------------------------------------
@@ -244,20 +248,29 @@ void BTreeIndex::fullNodeHandler(void* currNode, NonLeafNodeInt *parentNode, Pag
 		splitNonLeafNode(currNodeNonLeaf, middleKey, rightPageNum);
 //		parentNode->level ++;
 	}
-//	std::cout << "middle key is " << middleKey << std::endl;
+	std::cout << "middle key is " << middleKey << std::endl;
 
 	// Set attribute for new root
 	// Push every values to the right when it's greater than key
 	int nonLeafIndex = INTARRAYNONLEAFSIZE;
 	while (nonLeafIndex > 0 && (middleKey < parentNode->keyArray[nonLeafIndex-1] || parentNode->keyArray[nonLeafIndex-1] == -1)) {
-		if (parentNode->keyArray[nonLeafIndex-1] != -1) parentNode->keyArray[nonLeafIndex] = parentNode->keyArray[nonLeafIndex-1];
+		if (parentNode->keyArray[nonLeafIndex-1] != -1) {
+			parentNode->keyArray[nonLeafIndex] = parentNode->keyArray[nonLeafIndex-1];
+			parentNode->pageNoArray[nonLeafIndex+1] = parentNode->pageNoArray[nonLeafIndex];
+			parentNode->pageNoArray[nonLeafIndex] = parentNode->pageNoArray[nonLeafIndex-1];
+
+		}
 		nonLeafIndex--;
 	}
+	std::cout << "leaf index is " << nonLeafIndex << std::endl;
 	parentNode->keyArray[nonLeafIndex] = middleKey;
 	parentNode->pageNoArray[nonLeafIndex] = currPageNo;
 	parentNode->pageNoArray[nonLeafIndex+1] = rightPageNum;
+	
 
-//	std::cout << "splited into " << nonLeafIndex << " and " << nonLeafIndex+1 << std::endl;
+	std::cout << "rightsibno is " << ((LeafNodeInt*)currNode)->rightSibPageNo << std::endl;
+
+	for (int i=0; i <11; i++) std::cout << parentNode->pageNoArray[i] << ' ';
 //	testPrint();
 
 }
@@ -298,7 +311,7 @@ void BTreeIndex::testPrint() {
 				std::cout << "PRINTING LEFTEST (index 0)" << std::endl;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
 					if (testLeftNode->keyArray[i] != -1) {
-						std::cout << testLeftNode->keyArray[i] << ":" << testLeftNode->ridArray[i].page_number << std::endl;;
+						std::cout << testLeftNode->keyArray[i] << ' ';
 					}	
 			}
 			std::cout << "rightsib no is  " << testLeftNode->rightSibPageNo << std::endl;
@@ -306,13 +319,14 @@ void BTreeIndex::testPrint() {
 				std::cout << "PRINTING Page with index 1" << std::endl;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
 					if (testRightNode->keyArray[i] != -1) {
-						std::cout << testRightNode->keyArray[i] << ":" << testRightNode->ridArray[i].page_number << std::endl;;
+						std::cout << testRightNode->keyArray[i] << ' ';
+						std::cout << "page_num " << testRightNode->ridArray[i].page_number << ' ';
 					}	
 				}
 			std::cout << "rightsib no is  " << testRightNode->rightSibPageNo << std::endl;
 		for (int j=2; j < 100; j++) {
-			if (testRootNode->pageNoArray[j] == 0) break;
-Page * test3Right = new Page();
+			if (testRootNode->pageNoArray[j] == 0) { std::cout << "end of root " << std::endl; break; }
+ Page * test3Right = new Page();
 			std::cout << "now reading the page with pageno " << testRootNode->pageNoArray[j] << std::endl;
 this->bufMgr->readPage(this->file, testRootNode->pageNoArray[j], test3Right);
 LeafNodeInt * test3RightNode = new LeafNodeInt();
@@ -321,13 +335,14 @@ test3RightNode = (LeafNodeInt*)test3Right;
 				std::cout << "PRINTING Page with index " << j << std::endl;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
 					if (test3RightNode->keyArray[i] != -1) {
-						std::cout << test3RightNode->keyArray[i] << ":" << test3RightNode->ridArray[i].page_number << std::endl;;
+						std::cout << test3RightNode->keyArray[i] << ' ';
 					}	
 
 				}
 				std::cout << "right sib no is " << test3RightNode->rightSibPageNo << std::endl;
 		}
 
+		for (int i=0; i < 10; i++ ) std::cout << testRootNode->pageNoArray[i] << ' ';
 }
 
 // -----------------------------------------------------------------------------
@@ -335,7 +350,11 @@ test3RightNode = (LeafNodeInt*)test3Right;
 // -----------------------------------------------------------------------------
 void BTreeIndex::splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &pid) { 
 	// After splitNode, the original node will be in left, while returned node will be in right
-
+/*
+	for (int i=0; i < INTARRAYLEAFSIZE; i++) {
+		std::cout << "left node pid is " << leftNode->ridArray[i].page_number;
+	}
+*/
 	// Allocate new page to be right child of root
 	Page * rightPage = new Page();
 	this->bufMgr->allocPage(this->file, pid, rightPage);
@@ -345,7 +364,7 @@ void BTreeIndex::splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &
 	// get the middle value
 	int middlePoint = INTARRAYLEAFSIZE/2;
 	middleKey = leftNode->keyArray[middlePoint];
-
+	std::cout << "Splitting with midpoint " << middleKey <<std::endl;
 	// move right side of original node to rightNode
 	for (int i=middlePoint, j=0; i < INTARRAYLEAFSIZE; i++, j++) {
 		rightNode->keyArray[j] = leftNode->keyArray[i];
@@ -356,9 +375,15 @@ void BTreeIndex::splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &
 		leftNode->keyArray[i] = -1;
 	}
 
+	if (leftNode->rightSibPageNo != 0) rightNode->rightSibPageNo = leftNode->rightSibPageNo;
 	leftNode->rightSibPageNo = pid;
- 
-	// Increment total number of nodes 
+
+/*
+	std::cout << "LEFTNODE PRINTING\n";
+	for (int i=0; i <middlePoint; i++) std::cout << leftNode->ridArray[i].page_number << ' '; 
+	std::cout << "RIGHTNODE PRINTING\n";
+	for (int i=0; i <middlePoint; i++) std::cout << rightNode->ridArray[i].page_number << ' '; 
+*/	// Increment total number of nodes 
 	this->numOfNodes += 1;
 
 
@@ -434,7 +459,8 @@ void BTreeIndex::traverse(NonLeafNodeInt* currNode, const void* key, const Recor
 //			std::cout << "Full when inserting " << keyValue << std::endl;
 			fullNodeHandler(childNode, currNode, currNode->pageNoArray[i],1);
 			this->numOfNodes++;
-//			testPrint();
+
+			//testPrint();
 
 		}
 	}
@@ -572,7 +598,6 @@ const void BTreeIndex::startScan(const void* lowValParm,
 const void BTreeIndex::scanNext(RecordId& outRid) 
 {
 			
-	//std::cout << "\nIn scanNext..\n";
 	if(!scanExecuting){
 		throw ScanNotInitializedException();
 	}
@@ -610,19 +635,20 @@ const void BTreeIndex::scanNext(RecordId& outRid)
 		//std::cout << "Broke out of the loop at i= " << i << "\n";
 		nextEntry = startScanIndex;
 	}
-
-	//std::cout << "nextEntry: " << nextEntry << "\n";
+	
+//	std::cout << "nextEntry: " << nextEntry << "\n";
 
 	bool notFound = true;
 	while(notFound){
+
 	
-		
+/*	
 		if(currNode->ridArray[nextEntry].page_number == 0){
-			//std::cout << "Scan completed page_number = 0\n";
-			//std::cout << "at index: " << nextEntry << "\n";
+			std::cout << "Scan completed page_number = 0\n";
+			std::cout << "at index: " << nextEntry << "\n";
 			throw IndexScanCompletedException();	
 		}
-
+*/
 		if(currNode->keyArray[nextEntry] == -1){
 			std::cout << "calling rightsibpagno\n";
 			PageId siblingNode = currNode->rightSibPageNo;
@@ -662,7 +688,7 @@ const void BTreeIndex::scanNext(RecordId& outRid)
 			}
 			else{ 
 				outRid = currNode->ridArray[nextEntry];
-				std::cout << "Found: " << currNode->keyArray[nextEntry] << "\n";
+//				std::cout << "Found: " << currNode->keyArray[nextEntry] << "\n";
 				//std::cout << "page_number: " << outRid.page_number; 
 				notFound = false;
 				nextEntry++;

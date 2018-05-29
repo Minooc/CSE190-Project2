@@ -164,8 +164,11 @@ int main(int argc, char **argv)
 	File::remove(relationName);
 
 	test1();
+	std::cout << "@@@@@ TEST 1 PASSED!!! @@@@\n";
 	test2();
+	std::cout << "@@@@@ TEST 2 PASSED!!! @@@@\n";
 	test3();
+	std::cout << "@@@@@ TEST 3 PASSED!!! @@@@\n";
 	//errorTests();
 
   return 1;
@@ -377,6 +380,7 @@ void indexTests()
     intTests();
 		try
 		{
+			std::cout << "removing" << std::endl;
 			File::remove(intIndexName);
 		}
   	catch(FileNotFoundException e)
