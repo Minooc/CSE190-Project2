@@ -190,7 +190,7 @@ const void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	
 	metadata->rootPageNo = this->rootPageNum;
 	this->bufMgr->unPinPage(this->file, this->headerPageNum, 0);
-	if (keyValue == 4999)	testPrint();
+//	if (keyValue == 4999)	testPrint();
 }
 
 
@@ -244,7 +244,7 @@ void BTreeIndex::fullNodeHandler(void* currNode, NonLeafNodeInt *parentNode, Pag
 		splitNonLeafNode(currNodeNonLeaf, middleKey, rightPageNum);
 //		parentNode->level ++;
 	}
-	std::cout << "middle key is " << middleKey << std::endl;
+//	std::cout << "middle key is " << middleKey << std::endl;
 
 	// Set attribute for new root
 	// Push every values to the right when it's greater than key
@@ -257,14 +257,15 @@ void BTreeIndex::fullNodeHandler(void* currNode, NonLeafNodeInt *parentNode, Pag
 	parentNode->pageNoArray[nonLeafIndex] = currPageNo;
 	parentNode->pageNoArray[nonLeafIndex+1] = rightPageNum;
 
-	std::cout << "splited into " << nonLeafIndex << " and " << nonLeafIndex+1 << std::endl;
-	testPrint();
+//	std::cout << "splited into " << nonLeafIndex << " and " << nonLeafIndex+1 << std::endl;
+//	testPrint();
 
 }
 
 // Just for test. Print whatever you want
 void BTreeIndex::testPrint() {
 
+	std::cout << "testPrint caled" << std::endl;
 				/* TEST */
 
 				Page * testRoot = new Page();
@@ -282,7 +283,7 @@ void BTreeIndex::testPrint() {
 				this->bufMgr->readPage(this->file, testRootNode->pageNoArray[1], testRight);
 				LeafNodeInt * testRightNode = new LeafNodeInt();
 				testRightNode = (LeafNodeInt*)testRight;
-/*
+
 				std::cout << "MIDDLE KEY IS " << testRootNode->keyArray[0] << std::endl;
 				std::cout << "Level of root is " << testRootNode->level << std::endl;
 				std::cout << "Number of nodes is " << numOfNodes << std::endl;
@@ -292,29 +293,40 @@ void BTreeIndex::testPrint() {
 					if (testRootNode->keyArray[i] != -1) std::cout << testRootNode->keyArray[i] << ' ';
 				}
 				std::cout << std::endl;
-			/*
+
+			
 				std::cout << "PRINTING LEFTEST (index 0)" << std::endl;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
-					if (testLeftNode->keyArray[i] != -1) std::cout << testLeftNode->keyArray[i] << ' ';
-				}
+					if (testLeftNode->keyArray[i] != -1) {
+						std::cout << testLeftNode->keyArray[i] << ":" << testLeftNode->ridArray[i].page_number << std::endl;;
+					}	
+			}
+			std::cout << "rightsib no is  " << testLeftNode->rightSibPageNo << std::endl;
 				std::cout << std::endl;
 				std::cout << "PRINTING Page with index 1" << std::endl;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
-					if (testRightNode->keyArray[i] != -1) std::cout << testRightNode->keyArray[i] << ' ';
+					if (testRightNode->keyArray[i] != -1) {
+						std::cout << testRightNode->keyArray[i] << ":" << testRightNode->ridArray[i].page_number << std::endl;;
+					}	
 				}
+			std::cout << "rightsib no is  " << testRightNode->rightSibPageNo << std::endl;
 		for (int j=2; j < 100; j++) {
 			if (testRootNode->pageNoArray[j] == 0) break;
 Page * test3Right = new Page();
+			std::cout << "now reading the page with pageno " << testRootNode->pageNoArray[j] << std::endl;
 this->bufMgr->readPage(this->file, testRootNode->pageNoArray[j], test3Right);
 LeafNodeInt * test3RightNode = new LeafNodeInt();
 test3RightNode = (LeafNodeInt*)test3Right;
-
 				std::cout << std::endl;
 				std::cout << "PRINTING Page with index " << j << std::endl;
 				for (int i=0; i < INTARRAYLEAFSIZE; i++) {
-					if (test3RightNode->keyArray[i] != -1) std::cout << test3RightNode->keyArray[i] << ' ';
+					if (test3RightNode->keyArray[i] != -1) {
+						std::cout << test3RightNode->keyArray[i] << ":" << test3RightNode->ridArray[i].page_number << std::endl;;
+					}	
+
 				}
-		}*/
+				std::cout << "right sib no is " << test3RightNode->rightSibPageNo << std::endl;
+		}
 
 }
 
@@ -344,6 +356,8 @@ void BTreeIndex::splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &
 		leftNode->keyArray[i] = -1;
 	}
 
+	leftNode->rightSibPageNo = pid;
+ 
 	// Increment total number of nodes 
 	this->numOfNodes += 1;
 
@@ -417,7 +431,7 @@ void BTreeIndex::traverse(NonLeafNodeInt* currNode, const void* key, const Recor
 			}
 */
 //			testPrint();
-			std::cout << "Full when inserting " << keyValue << std::endl;
+//			std::cout << "Full when inserting " << keyValue << std::endl;
 			fullNodeHandler(childNode, currNode, currNode->pageNoArray[i],1);
 			this->numOfNodes++;
 //			testPrint();
@@ -602,25 +616,28 @@ const void BTreeIndex::scanNext(RecordId& outRid)
 	bool notFound = true;
 	while(notFound){
 	
-			
+		
 		if(currNode->ridArray[nextEntry].page_number == 0){
 			//std::cout << "Scan completed page_number = 0\n";
 			//std::cout << "at index: " << nextEntry << "\n";
 			throw IndexScanCompletedException();	
 		}
 
-		if(nextEntry > leafOccupancy){
-			nextEntry = 0;
+		if(currNode->keyArray[nextEntry] == -1){
+			std::cout << "calling rightsibpagno\n";
 			PageId siblingNode = currNode->rightSibPageNo;
 			bufMgr->unPinPage(file, currentPageNum, false);	
 		
+			nextEntry = 0;
 			if(siblingNode == 0){
 				//std::cout << "Scan completed siblingNode = 0\n";
 				throw IndexScanCompletedException();
 			}
 
 			currentPageNum = siblingNode;
+			std::cout << "rigth sib no is " << currentPageNum << std::endl;
 			bufMgr->readPage(file, currentPageNum, currentPageData);
+			currNode = (LeafNodeInt*)currentPageData;
 		}
 
 		else if (currNode->keyArray[nextEntry] > highValInt){
