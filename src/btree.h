@@ -441,16 +441,28 @@ class BTreeIndex {
    * @param key			Key to insert, pointer to integer/double/char string
    * @param rid			Record ID of a record whose entry is getting inserted into the index.
 	**/
-	const void insertEntry(const void* key, const RecordId rid);
+	template <typename T, typename L, typename NL>
+	const void insertEntry(L* leafType, NL* nonLeafType, T key, const RecordId rid);
 
 	/* TO DO: ADD COMMENTS */
 	void testPrint();
-	void fullNodeHandler(void* currNode, NonLeafNodeInt* parentNode, PageId currPageNo, bool isLeaf);
-	const void insertToNode(LeafNodeInt * node, const void* key, const RecordId rid);
-	void splitLeafNode(LeafNodeInt *& leftNode, int& middleKey, PageId &pid);
-	void splitNonLeafNode(NonLeafNodeInt *& leftNode, int& middleKey, PageId &pid); 
-	void traverse(NonLeafNodeInt* currNode, const void* key, const RecordId rid); 
+
+	template<typename L, typename NL>
+	void fullNodeHandler(L* leafType, NL* nonLeafType, void* currNode, NL* parentNode, PageId currPageNo, bool isLeaf, bool isRoot);
+
+	template<typename T, typename L>
+	const void insertToNode(L * node, T keyValue, const RecordId rid);
+
+	template<typename T, typename L>
+	void splitLeafNode(L *& leftNode, T& middleKey, PageId &pid);
+
+	template<typename T, typename NL>
+	void splitNonLeafNode(NL *& leftNode, T& middleKey, PageId &pid); 
+
+	template <typename T, typename L, typename NL>
+	void traverse(L* leafType, NL* nonLeafType, NL * currNode, T key, const RecordId rid); 
 	void printTree();
+
   /**
 	 * Begin a filtered scan of the index.  For instance, if the method is called 
 	 * using ("a",GT,"d",LTE) then we should seek all entries with a value 
@@ -468,6 +480,8 @@ class BTreeIndex {
 	**/
 	const void startScan(const void* lowVal, const Operator lowOp, const void* highVal, const Operator highOp);
 
+	template <typename T, typename L, typename NL>
+	const void startScanGeneric (L* leafType, NL* nonLeafType, T lowVal, T highVal); 
 
   /**
 	 * Fetch the record id of the next index entry that matches the scan.
@@ -478,6 +492,8 @@ class BTreeIndex {
 	**/
 	const void scanNext(RecordId& outRid);  // returned record id
 
+	template <typename T, typename L>
+	const void scanNextGeneric(L* leafType, RecordId& outRid, T lowVal, T highVal);
 
   /**
 	 * Terminate the current scan. Unpin any pinned pages. Reset scan specific variables.

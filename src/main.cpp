@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 	errorTests();
 	std::cout << "@@@@@ ERRORTEST PASSED!!! @@@@\n";
 
-	reopenIndex();
+	//reopenIndex();
 
   return 1;
 }
@@ -513,6 +513,7 @@ void doubleTests()
 	checkPassFail(doubleScan(&index,0,GT,1,LT), 0)
 	checkPassFail(doubleScan(&index,300,GT,400,LT), 99)
 	checkPassFail(doubleScan(&index,3000,GTE,4000,LT), 1000)
+	std::cout << "PASDA\n";
 }
 
 int doubleScan(BTreeIndex * index, double lowVal, Operator lowOp, double highVal, Operator highOp)
