@@ -115,7 +115,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 					break;
 				case STRING:
 //					std::cout << (char*)((int*)record.c_str()) << '\n';
-//					this->insertEntry(LEAFSTRING, NONLEAFSTRING, (*((char*)record.c_str())), rid);
+					this->insertEntry(LEAFSTRING, NONLEAFSTRING, (*((char*)record.c_str())), rid);
 					break;
 
 				default: break;
@@ -176,9 +176,17 @@ const void BTreeIndex::insertEntry(L* leafType, NL* nonLeafType, T keyValue, con
 		L * rootNode = new L();
 		rootNode = (L*)rootPage;
 
+		switch (this->attributeType) {
+			case INTEGER: initializeInt((LeafNodeInt*)rootNode); break;
+			case DOUBLE: initializeDouble((LeafNodeDouble*)rootNode); break;
+			case STRING: initializeString((LeafNodeString*)rootNode); break;
+			default: break;
+		}
+/*
 		for (int i=0; i < leafSize; i++) {
 			rootNode->keyArray[i] = -1;
 		}
+*/
 		rootNode->keyArray[0] = keyValue;
 		rootNode->ridArray[0] = rid;
 		this->bufMgr->unPinPage(this->file, this->rootPageNum, 1);
@@ -606,6 +614,36 @@ void BTreeIndex::traverse(L* leafType, NL* nonLeafType, NL* currNode, T key, con
 		return traverse(key, (NonLeafNodeInt *) parent, currNode->pageNoArray[i]);
 */
 }
+
+
+const void BTreeIndex::initializeInt(LeafNodeInt* rootNode)
+{
+	
+	int leafSize = INTARRAYLEAFSIZE;
+
+	for (int i=0; i < leafSize; i++) {
+		rootNode->keyArray[i] = -1;
+	}
+}
+
+const void BTreeIndex::initializeDouble(LeafNodeDouble* rootNode)
+{
+	int leafSize = DOUBLEARRAYLEAFSIZE;
+
+	for (int i=0; i < leafSize; i++) {
+		rootNode->keyArray[i] = -1;
+	}
+}
+
+const void BTreeIndex::initializeString(LeafNodeString* rootNode)
+{
+	int leafSize = STRINGARRAYLEAFSIZE;
+
+	for (int i=0; i < leafSize; i++) {
+		strncpy(rootNode->keyArray[i], "aaaaaaaaa", 10);
+	}
+}
+
 
 template <typename T, typename L, typename NL>
 const void BTreeIndex::startScanGeneric (L* leafType, NL* nonLeafType, T lowVal, T highVal)

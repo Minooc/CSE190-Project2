@@ -463,6 +463,9 @@ class BTreeIndex {
 	void traverse(L* leafType, NL* nonLeafType, NL * currNode, T key, const RecordId rid); 
 	void printTree();
 
+	const void initializeInt(LeafNodeInt* rootNode);
+	const void initializeDouble(LeafNodeDouble* rootNode);
+	const void initializeString(LeafNodeString* rootNode);
   /**
 	 * Begin a filtered scan of the index.  For instance, if the method is called 
 	 * using ("a",GT,"d",LTE) then we should seek all entries with a value 
