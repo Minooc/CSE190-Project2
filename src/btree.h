@@ -466,7 +466,16 @@ class BTreeIndex {
 	const void initializeInt(LeafNodeInt* rootNode);
 	const void initializeDouble(LeafNodeDouble* rootNode);
 	const void initializeString(LeafNodeString* rootNode);
-  /**
+ 
+	const void insertEntryString(const void* key, const RecordId rid);
+	void fullNodeHandlerString(void * currNode, NonLeafNodeString *parentNode, PageId currPageNo, bool isLeaf); 
+	void traverseString(NonLeafNodeString * currNode, const void* key, const RecordId rid);
+	const void insertToNodeString(LeafNodeString * node, const void * key, const RecordId rid);
+
+	void splitLeafNodeString(LeafNodeString *& leftNode, char* middleKey, PageId &pid);
+	void splitNonLeafNodeString(NonLeafNodeString *& leftNode, char* middleKey, PageId &pid);
+
+ /**
 	 * Begin a filtered scan of the index.  For instance, if the method is called 
 	 * using ("a",GT,"d",LTE) then we should seek all entries with a value 
 	 * greater than "a" and less than or equal to "d".
@@ -482,10 +491,12 @@ class BTreeIndex {
 	 * @throws  NoSuchKeyFoundException If there is no key in the B+ tree that satisfies the scan criteria.
 	**/
 	const void startScan(const void* lowVal, const Operator lowOp, const void* highVal, const Operator highOp);
+	const void scanNextString(RecordId& outRid);
 
 	template <typename T, typename L, typename NL>
 	const void startScanGeneric (L* leafType, NL* nonLeafType, T lowVal, T highVal); 
-
+	const void startScanString (const void* lowVal, const Operator lowOp, const void * highVal, const Operator highOp);
+	
   /**
 	 * Fetch the record id of the next index entry that matches the scan.
 	 * Return the next record from current page being scanned. If current page has been scanned to its entirety, move on to the right sibling of current page, if any exists, to start scanning that page. Make sure to unpin any pages that are no longer required.
