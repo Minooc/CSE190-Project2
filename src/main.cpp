@@ -165,14 +165,14 @@ int main(int argc, char **argv)
 	test1();
 	std::cout << "@@@@@ TEST 1 PASSED!!! @@@@\n";
 
-/*
+
 	test2();
 	std::cout << "@@@@@ TEST 2 PASSED!!! @@@@\n";
 	test3();
 	std::cout << "@@@@@ TEST 3 PASSED!!! @@@@\n";
 	errorTests();
 	std::cout << "@@@@@ ERRORTEST PASSED!!! @@@@\n";
-*/
+
 	//reopenIndex();
 
   return 1;
@@ -587,14 +587,13 @@ void stringTests()
   BTreeIndex index(relationName, stringIndexName, bufMgr, offsetof(tuple,s), STRING);
 
 	// run some tests
-//	checkPassFail(stringScan(&index,25,GT,40,LT), 14)
-//	checkPassFail(stringScan(&index,20,GTE,35,LTE), 16)
-//	checkPassFail(stringScan(&index,-3,GT,3,LT), 3)
+	checkPassFail(stringScan(&index,25,GT,40,LT), 14)
+	checkPassFail(stringScan(&index,20,GTE,35,LTE), 16)
+	checkPassFail(stringScan(&index,-3,GT,3,LT), 3)
 	checkPassFail(stringScan(&index,996,GT,1001,LT), 4)
-/*	checkPassFail(stringScan(&index,0,GT,1,LT), 0)
+	checkPassFail(stringScan(&index,0,GT,1,LT), 0)
 	checkPassFail(stringScan(&index,300,GT,400,LT), 99)
 	checkPassFail(stringScan(&index,3000,GTE,4000,LT), 1000)
-*/
 }
 
 int stringScan(BTreeIndex * index, int lowVal, Operator lowOp, int highVal, Operator highOp)
